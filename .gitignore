@@ -9,3 +9,17 @@ buildNumber.properties
 .mvn/timing.properties
 # https://github.com/takari/maven-wrapper#usage-without-binary-jar
 .mvn/wrapper/maven-wrapper.jar
+
+*.iml
+.idea
+atlassian-ide-plugin.xml
+**/target
+.DS_Store
+target
+.project
+.classpath
+.settings
+**.gitignore
+**/.attach_pid*
+**/trace.db
+**/ObjectStore
