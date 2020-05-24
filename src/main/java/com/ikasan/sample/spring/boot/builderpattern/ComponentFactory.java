@@ -40,8 +40,6 @@
  */
 package com.ikasan.sample.spring.boot.builderpattern;
 
-import org.apache.activemq.ActiveMQXAConnectionFactory;
-import org.apache.activemq.RedeliveryPolicy;
 import org.ikasan.builder.BuilderFactory;
 import org.ikasan.spec.component.endpoint.Broker;
 import org.ikasan.spec.component.endpoint.Consumer;
@@ -53,8 +51,10 @@ import org.springframework.context.annotation.ImportResource;
 import javax.annotation.Resource;
 import javax.jms.DeliveryMode;
 import javax.jms.Session;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.springframework.jms.listener.DefaultMessageListenerContainer.*;
+import static org.springframework.jms.listener.DefaultMessageListenerContainer.CACHE_CONSUMER;
 
 /**
  * Sample component factory.
@@ -83,24 +83,20 @@ public class ComponentFactory
 
     Consumer getJmsConsumer(String clientId)
     {
-        ActiveMQXAConnectionFactory connectionFactory =
-                new ActiveMQXAConnectionFactory(jmsProviderUrl);
-        connectionFactory.setClientID(clientId);
-        RedeliveryPolicy redeliveryPolicy = new RedeliveryPolicy();
-        redeliveryPolicy.setMaximumRedeliveries(-1);
-        connectionFactory.setRedeliveryPolicy(redeliveryPolicy);
-
+        Map<String,String> jndi = jndiProperties(false,clientId);
 
        return builderFactory.getComponentBuilder().jmsConsumer()
-                .setConnectionFactory(connectionFactory)
-                .setDestinationJndiName(destinationName)
+                .setConnectionFactoryJndiProperties(jndi)
+                .setDestinationJndiProperties(jndi)
+                .setConnectionFactoryName("XAConnectionFactory")
+                .setDestinationJndiName("dynamicTopics/"+destinationName)
                 .setDurableSubscriptionName("testDurableSubscription")
                 .setDurable(true)
                 .setAutoContentConversion(true)
                 .setAutoSplitBatch(true)
                 .setBatchMode(false)
                 .setBatchSize(1)
-                .setCacheLevel(CACHE_NONE)
+                .setCacheLevel(CACHE_CONSUMER)
                 .setConcurrentConsumers(1)
                 .setMaxConcurrentConsumers(1)
                 .setSessionAcknowledgeMode(Session.SESSION_TRANSACTED)
@@ -114,19 +110,40 @@ public class ComponentFactory
         return new DbBroker();
     }
 
+    private Map<String,String> jndiProperties(boolean usePrefix,String clientId){
+        Map<String,String> jndi = new HashMap<>();
+        jndi.put("java.naming.factory.initial","org.apache.activemq.jndi.ActiveMQInitialContextFactory");
+        jndi.put("java.naming.provider.url",getBrokerUrl(usePrefix,clientId));
+
+        return jndi;
+    }
+
+    private String getBrokerUrl(boolean usePrefix,String clientId)
+    {
+        String symbol;
+        if(jmsProviderUrl.contains("?")){
+            symbol = "&";
+        }else{
+            symbol = "?";
+        }
+        if ( usePrefix ){
+            return jmsProviderUrl +symbol + "jms.clientIDPrefix="+clientId;
+        }else {
+            return jmsProviderUrl +symbol + "jms.clientID="+clientId;
+
+        }
+    }
+
     Producer getJmsProducer()
     {
-        ActiveMQXAConnectionFactory connectionFactory =
-                new ActiveMQXAConnectionFactory(jmsProviderUrl);
-        connectionFactory.setClientIDPrefix(jmsProducerConfiguredResourceId);
-        RedeliveryPolicy redeliveryPolicy = new RedeliveryPolicy();
-        redeliveryPolicy.setMaximumRedeliveries(-1);
-        connectionFactory.setRedeliveryPolicy(redeliveryPolicy);
+        Map<String,String> jndi = jndiProperties(true,jmsProducerConfiguredResourceId);
 
         return builderFactory.getComponentBuilder().jmsProducer()
                 .setConfiguredResourceId(jmsProducerConfiguredResourceId)
-                .setDestinationJndiName(destinationName)
-                .setConnectionFactory(connectionFactory)
+                .setConnectionFactoryJndiProperties(jndi)
+                .setDestinationJndiProperties(jndi)
+                .setConnectionFactoryName("XAConnectionFactory")
+                .setDestinationJndiName("dynamicTopics/"+destinationName)
                 .setSessionAcknowledgeMode(Session.SESSION_TRANSACTED)
                 .setSessionTransacted(true)
                 .setPubSubDomain(true)

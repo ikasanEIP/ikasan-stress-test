@@ -132,8 +132,8 @@ public class ApplicationTest
         });
 
         String address =
-                "failover:(tcp://" + activeMQContainer.getContainerIpAddress() + ":" + activeMQContainer.getMappedPort(61616)
-                        + ")?jms.prefetchPolicy.all=0";
+                "tcp://" + activeMQContainer.getContainerIpAddress() + ":" + activeMQContainer.getMappedPort(61616)
+                        + "?jms.prefetchPolicy.all=0&jms.redeliveryPolicy.maximumRedeliveries=-1";
 
         System.setProperty("jms.provider.url", address);
     }
@@ -216,7 +216,7 @@ public class ApplicationTest
 
         logger.info("Waiting for 'eventGeneratorToJMSFlow' flow to complete (circa 24 seconds).");
 
-        //TODO: Update 10min timeout to lower value
+        //TODO: Update 4min timeout to lower value
         with().pollInterval(5, TimeUnit.SECONDS).and().with().pollDelay(24, TimeUnit.SECONDS).await()
               .atMost(240, TimeUnit.SECONDS).untilAsserted(() -> {
             PagedSearchResult<WiretapEvent> wiretaps = wiretapTestUtil
@@ -235,7 +235,7 @@ public class ApplicationTest
 
         logger.info("Waiting for 'configurationUpdaterFlow' flow to complete (circa 30 seconds).");
 
-        with().pollInterval(5, TimeUnit.SECONDS).and().with().pollDelay(5, TimeUnit.SECONDS).await()
+        with().pollInterval(5, TimeUnit.SECONDS).and().with().pollDelay(1, TimeUnit.SECONDS).await()
               .atMost(30, TimeUnit.SECONDS).untilAsserted(() -> {
             PagedSearchResult<WiretapEvent> wiretaps = wiretapTestUtil
                     .getWiretaps("Transaction Test Module", "configurationUpdaterFlow", TriggerRelationship.AFTER,
@@ -253,7 +253,7 @@ public class ApplicationTest
 
         // wait for JMS flows to catch up for a max of 10 seconds
 
-        with().pollInterval(1, TimeUnit.SECONDS).and().with().pollDelay(5, TimeUnit.SECONDS).await()
+        with().pollInterval(1, TimeUnit.SECONDS).and().with().pollDelay(1, TimeUnit.SECONDS).await()
               .atMost(30, TimeUnit.SECONDS).untilAsserted(() -> {
             PagedSearchResult<WiretapEvent> wiretaps = wiretapTestUtil
                     .getWiretaps("Transaction Test Module", "jmsToDevNullFlow1", TriggerRelationship.AFTER,
@@ -271,7 +271,7 @@ public class ApplicationTest
 
         // wait for JMS flows to catch up for a max of 10 seconds
 
-        with().pollInterval(1, TimeUnit.SECONDS).and().with().pollDelay(5, TimeUnit.SECONDS).await()
+        with().pollInterval(1, TimeUnit.SECONDS).and().with().pollDelay(1, TimeUnit.SECONDS).await()
               .atMost(30, TimeUnit.SECONDS).untilAsserted(() -> {
             PagedSearchResult<WiretapEvent> wiretaps = wiretapTestUtil
                     .getWiretaps("Transaction Test Module", "jmsToDevNullFlow2", TriggerRelationship.AFTER,
